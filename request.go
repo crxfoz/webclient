@@ -21,6 +21,7 @@ type Request struct {
 
 	url       string
 	ctype     WContentType
+	customCType WContentType
 	method    string
 	headers   map[string]string
 	cookies   map[string]string
@@ -53,7 +54,7 @@ func (r *Request) Cookie(name string, value string) *Request {
 
 // ContentType Устанавливает хидер Content-Type
 func (r *Request) ContentType(name WContentType) *Request {
-	r.ctype = name
+	r.customCType = name
 	return r
 }
 
@@ -134,8 +135,6 @@ func (r *Request) Send(data string) *Request {
 		}
 	}
 
-	r.ctype = TypeForm
-
 	return r
 }
 
@@ -148,7 +147,6 @@ func (r *Request) Send(data string) *Request {
 //          Send("foz", "baz")
 func (r *Request) SendParam(key string, value string) *Request {
 	r.formData[key] = append(r.formData[key], value)
-	r.ctype = TypeForm
 
 	return r
 }
@@ -174,7 +172,7 @@ func (r *Request) newRequest() (*http.Request, error) {
 	)
 
 	// Если имеются добавленные файлы -> используем multipart запрос
-	if len(r.files) > 0 {
+	if len(r.files) > 0 || r.customCType == TypeMultipart {
 		buf := &bytes.Buffer{}
 		multipartWriter := multipart.NewWriter(buf)
 
@@ -213,6 +211,8 @@ func (r *Request) newRequest() (*http.Request, error) {
 		if len(r.formData) > 0 {
 			b := []byte(mapToUrlValues(r.formData).Encode())
 			data = bytes.NewReader(b)
+
+			r.ctype = TypeForm
 		}
 	}
 
@@ -220,8 +220,16 @@ func (r *Request) newRequest() (*http.Request, error) {
 		return nil, err
 	}
 
-	if len(r.ctype) > 0 {
-		req.Header.Set("Content-Type", string(r.ctype))
+	// Если установлен кастомный Content-Type -> Используем его
+	// Иначе используется тот, что определила либа (или пустой)
+	if len(r.customCType) > 0 && r.customCType != TypeMultipart {
+		// TypeMultipart Как кастомный игнорируется
+		// в данном блоке, т.к. обрабатывается выше в коде
+		req.Header.Set("Content-Type", string(r.customCType))
+	} else {
+		if len(r.ctype) > 0 {
+			req.Header.Set("Content-Type", string(r.ctype))
+		}
 	}
 
 	// Энкодим Query-часть запроса

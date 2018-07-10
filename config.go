@@ -8,6 +8,7 @@ import (
 	"net"
 )
 
+// Config Базовая структура принимающая параметры для конфигируции *Webclient
 type Config struct {
 	Timeout time.Duration
 	UseKeepAlive bool
