@@ -1,33 +1,37 @@
 package webclient
 
-// todo: Добавить методы SendJSON и SendXML
 // todo: AddHeader в дополнение к SetHeader?
+// todo: BasicAuth
 
 import (
-	"net/url"
-	"log"
-	"net/http"
-	"io/ioutil"
-	"io"
 	"bytes"
-	"mime/multipart"
-	"net/textproto"
+	"encoding/json"
+	"encoding/xml"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"log"
+	"mime/multipart"
+	"net/http"
+	"net/textproto"
+	"net/url"
 )
 
 // Request Структура содержащая все состовные части для запроса
 type Request struct {
 	client *http.Client
 
-	url       string
-	ctype     WContentType
+	url       	string
+	ctype     	WContentType
 	customCType WContentType
-	method    string
-	headers   map[string]string
-	cookies   map[string]string
-	queryData map[string][]string
-	formData  map[string][]string
-	files []File
+	method    	string
+	cStruct 	interface{}
+	rawData 	string
+	headers   	map[string]string
+	cookies   	map[string]string
+	queryData 	map[string][]string
+	formData  	map[string][]string
+	files 		[]File
 }
 
 // NewRequest Создает новый Request
@@ -75,7 +79,6 @@ func (r *Request) Referer(data string) *Request {
 	r.headers["Referer"] = data
 	return r
 }
-
 
 // Query Устанавливает Query данные для запроса
 //
@@ -163,6 +166,44 @@ func (r *Request) SendFile(file File) *Request {
 	return r
 }
 
+// SendFiles Добавить множество файлов к запросу
+func(r *Request) SendFiles(files ...File) *Request {
+	for _, file := range files {
+		r.files = append(r.files, file)
+	}
+
+	return r
+}
+
+// SendJSON Отправляет data как application/json контент
+func(r *Request) SendJSON(data string) *Request {
+	r.ctype = TypeJSON
+	r.rawData = data
+
+	return r
+}
+
+// SendXML Отправляет data как application/xml контент
+func(r *Request) SendXML(data string) *Request {
+	r.ctype = TypeXML
+	r.rawData = data
+
+	return r
+}
+
+func(r *Request) SendStruct(data interface{}) *Request {
+	r.cStruct = data
+
+	return r
+}
+
+func(r *Request) SendPlain(data string) *Request {
+	r.rawData = data
+	r.ctype = TypeText
+
+	return r
+}
+
 // newRequest Собирает воедино http.Request
 func (r *Request) newRequest() (*http.Request, error) {
 	var (
@@ -207,13 +248,39 @@ func (r *Request) newRequest() (*http.Request, error) {
 		// Указывает правильный Content-Type для multipart запроса (включая boundary)
 		r.ctype = WContentType(multipartWriter.FormDataContentType())
 
-	} else {
-		if len(r.formData) > 0 {
+	} else if len(r.formData) > 0 {
+			// Если есть formData
 			b := []byte(mapToUrlValues(r.formData).Encode())
 			data = bytes.NewReader(b)
-
 			r.ctype = TypeForm
+
+	} else if len(r.rawData) > 0 {
+		// Если есть rawData (сырая строка с JSON, XML, PlainText)
+		data = bytes.NewBuffer([]byte(r.rawData))
+
+	} else if r.cStruct != nil {
+		// Если использовался метод SendStruct
+		type marshallerFunc func(interface{}) ([]byte, error)
+
+		var marshaller marshallerFunc
+
+		switch r.customCType {
+		case TypeJSON:
+			marshaller = json.Marshal
+		case TypeXML:
+			marshaller = xml.Marshal
+		default:
+			// По умолчанию обработаем также как и JSON?
+			r.ctype = TypeJSON
+			marshaller = json.Marshal
 		}
+
+		buff, err := marshaller(r.cStruct)
+		if err != nil {
+			return nil, err
+		}
+		data = bytes.NewBuffer(buff)
+
 	}
 
 	if req, err = http.NewRequest(r.method, r.url, data); err != nil {

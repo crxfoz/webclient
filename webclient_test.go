@@ -11,6 +11,8 @@ import (
 	"net"
 	"strings"
 	"io/ioutil"
+	"encoding/json"
+	"encoding/xml"
 )
 
 func TestMapToUrlValues(t *testing.T) {
@@ -347,4 +349,125 @@ func TestCustomContentType(t *testing.T) {
 	}))
 
 	Config{}.New().Post(ts.URL).ContentType(TypeJSON).SendParam("foo", "bar").Do()
+}
+
+func TestRequest_SendJSON(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		if r.Header.Get("Content-Type") != string(TypeJSON) {
+			t.Errorf("Got unexpected content-tyoe header. Expect: %s, got: %s",
+				string(TypeJSON),
+				r.Header.Get("Content-Type"))
+		}
+
+		type Case01Struct struct {
+			Name string `json:"name"`
+			Films []struct {
+				ID   int    `json:"id"`
+				Name string `json:"name"`
+			} `json:"films"`
+		}
+
+		var ss Case01Struct
+		data, _ := ioutil.ReadAll(r.Body)
+
+		err := json.Unmarshal(data, &ss)
+		if err != nil {
+			t.Errorf("Got unexpected error: %v", err)
+		} else {
+			if ss.Name != "gleb" {
+				t.Errorf("Expected: %s, got: %s", "gleb", ss.Name)
+			}
+		}
+	}))
+
+	Config{}.New().Post(ts.URL).SendJSON(`{"name": "gleb", "films": [{"id": 1, "name": "foo"}, {"id": 2, "name": "bar"}]}`).Do()
+}
+
+func TestRequest_SendXML(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		type Case01Struct struct {
+				Food []struct {
+					Name string `xml:"name"`
+					Calories string `xml:"calories"`
+				} `xml:"food"`
+		}
+
+		var ss Case01Struct
+		data, _ := ioutil.ReadAll(r.Body)
+
+		err := xml.Unmarshal(data, &ss)
+		if err != nil {
+			t.Errorf("Got unexpected error: %v", err)
+		}
+
+		if ss.Food[0].Name != "foo" {
+			t.Errorf("Expected food[0].Name: %s, got: %s", "foo", ss.Food[0].Name)
+		}
+
+	}))
+
+	Config{}.New().Post(ts.URL).SendXML(
+		`<?xml version="1.0" encoding="UTF-8"?><menu><food><name>foo</name><calories>650</calories></food>
+		<food><name>bar</name><calories>777</calories></food></menu>`).
+		Do()
+}
+
+type Person struct {
+	Name string `json:"name" xml:"name"`
+	Pets []Pet `json:"pets" xml:"pets"`
+}
+
+type Pet struct {
+	ID int `json:"id" xml:"id"`
+	Age int `json:"age" xml:"age"`
+}
+
+func TestRequest_SendStruct(t *testing.T) {
+	const case01_json = "/json"
+	const case02_xml = "/xml"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		b, _ := ioutil.ReadAll(r.Body)
+
+		switch r.URL.Path {
+		case case01_json:
+			if r.Header.Get("Content-Type") != string(TypeJSON) {
+				t.Errorf("Unexpected content-type header. Expect: %s, got: %s", TypeJSON, r.Header.Get("Content-Type"))
+			}
+
+			if string(b) != `[{"name":"foo","pets":[{"id":1,"age":13},{"id":2,"age":14}]},{"name":"bar","pets":[{"id":3,"age":6}]}]` {
+				t.Errorf("Unexpected body")
+			}
+		case case02_xml:
+			if r.Header.Get("Content-Type") != string(TypeXML) {
+				t.Errorf("Unexpected content-type header. Expect: %s, got: %s", TypeXML, r.Header.Get("Content-Type"))
+			}
+
+			if string(b) != `<Person><name>foo</name><pets><id>1</id><age>13</age></pets><pets><id>2</id><age>14</age></pets></Person><Person><name>bar</name><pets><id>3</id><age>6</age></pets></Person>` {
+				t.Errorf("Unexpected body")
+			}
+
+		default:
+			t.Errorf("Unexpected path: %s", r.URL.Path)
+		}
+	}))
+
+	b := []Person{
+		{
+			Name: "foo",
+				Pets:[]Pet{
+					{1, 13},
+					{2, 14}},
+		},
+		{
+			Name: "bar",
+			Pets:[]Pet{
+				{3, 6}},
+		},
+	}
+
+	Config{}.New().Post(ts.URL + case01_json).SendStruct(&b).ContentType(TypeJSON).Do()
+	Config{}.New().Post(ts.URL + case02_xml).SendStruct(&b).ContentType(TypeXML).Do()
+	Config{}.New().Post(ts.URL + case01_json).SendStruct(&b).Do()
 }
