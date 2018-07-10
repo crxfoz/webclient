@@ -141,8 +141,7 @@ func (r *Request) Send(data string) *Request {
 
 // SendParam Устанавливает данные для POSTDATA
 //
-// Example
-// foo=bar&foz=baz
+// Пример запроса: foo=bar&foz=baz
 //      client.
 //          Post("/page").
 //          Send("foo", "bar").
@@ -155,6 +154,11 @@ func (r *Request) SendParam(key string, value string) *Request {
 }
 
 // SendFile Добавить отправку файла к запросу. В этом случае будет отправлен multipart-запрос
+//
+// Пример:
+// 		f, _ := NewFile("/tmp/1.txt", "userfile")
+// 		client.Post('/upload').
+//		SendFile(f)
 func (r *Request) SendFile(file File) *Request {
 	r.files = append(r.files, file)
 
