@@ -10,6 +10,7 @@ import (
 	"time"
 	"net"
 	"strings"
+	"io/ioutil"
 )
 
 func TestMapToUrlValues(t *testing.T) {
@@ -241,6 +242,8 @@ func TestPostParams(t *testing.T) {
 func TestMultipartFile(t *testing.T) {
 	const case01_default_file = "/default_file"
 	const case02_custom_file = "/custom_file"
+	const case03_no_file = "/no_file"
+
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("Expected method POST, got: %s", r.Method)
@@ -276,6 +279,11 @@ func TestMultipartFile(t *testing.T) {
 				t.Errorf("Expected name of file: %s, got: %s", "newname.txt", f.Filename)
 
 			}
+		case case03_no_file:
+			if r.MultipartForm.Value["s1"][0] != "a" || r.MultipartForm.Value["s2"][0] != "b" {
+				t.Errorf("Unexpected body of request")
+			}
+
 		default:
 			t.Error("Unexpected path")
 		}
@@ -309,4 +317,34 @@ func TestMultipartFile(t *testing.T) {
 		SendParam("s2", "b").
 		SendFile(f).
 		Do()
+
+	Config{}.New().
+		Post(ts.URL + case03_no_file).
+		ContentType(TypeMultipart).
+		QueryParam("q1", "a").
+		QueryParam("q2", "b").
+		SendParam("s1", "a").
+		SendParam("s2", "b").
+		Do()
+}
+
+func TestCustomContentType(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Content-Type") != string(TypeJSON) {
+			t.Errorf("Expect header content-type: %s, got: %s", TypeJSON, r.Header.Get("Content-Type"))
+		}
+
+
+		d, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("Got unexpected error: %v", err)
+		}
+
+		if string(d) != "foo=bar" {
+			t.Errorf("Expected body: %s, got: %s", "foo=bar", string(d))
+		}
+
+	}))
+
+	Config{}.New().Post(ts.URL).ContentType(TypeJSON).SendParam("foo", "bar").Do()
 }
