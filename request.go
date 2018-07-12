@@ -90,11 +90,6 @@ func (r *Request) Referer(data string) *Request {
 }
 
 // Query Устанавливает Query данные для запроса
-//
-// Пример запроса: /search?foo=bar&foz=baz
-//      client.
-//          Get("/page").
-//          QueryString("foo=bar&foz=baz")
 func (r *Request) Query(data string) *Request {
 	parsed, err := url.ParseQuery(data)
 	if err != nil {
@@ -112,28 +107,12 @@ func (r *Request) Query(data string) *Request {
 }
 
 // QueryParam Устанавливает Query данные для запроса
-//
-// Пример запроса: /search?foo=bar&foz=baz
-//      client.
-//          Get("/page").
-//          Query("foo", "bar").
-//          Query("foz", "baz")
 func (r *Request) QueryParam(key string, value string) *Request {
 	r.queryData[key] = append(r.queryData[key], value)
 	return r
 }
 
 // Send Добавить данные для POSTDATA
-//
-// Пример запроса: foo=bar&foz=baz
-//      client.
-//          Post("/page").
-//          Send("foo=bar&foz=baz")
-//
-//      client.
-//          Post("/page").
-//          Send("foo=bar").
-//          Send("foz=baz")
 func (r *Request) Send(data string) *Request {
 	parsed, err := url.ParseQuery(data)
 	if err != nil {
@@ -151,12 +130,6 @@ func (r *Request) Send(data string) *Request {
 }
 
 // SendParam Устанавливает данные для POSTDATA
-//
-// Пример запроса: foo=bar&foz=baz
-//      client.
-//          Post("/page").
-//          Send("foo", "bar").
-//          Send("foz", "baz")
 func (r *Request) SendParam(key string, value string) *Request {
 	r.formData[key] = append(r.formData[key], value)
 
@@ -164,11 +137,6 @@ func (r *Request) SendParam(key string, value string) *Request {
 }
 
 // SendFile Добавить отправку файла к запросу. В этом случае будет отправлен multipart-запрос
-//
-// Пример:
-// 		f, _ := NewFile("/tmp/1.txt", "userfile")
-// 		client.Post('/upload').
-//		SendFile(f)
 func (r *Request) SendFile(file File) *Request {
 	r.files = append(r.files, file)
 
@@ -200,12 +168,14 @@ func (r *Request) SendXML(data string) *Request {
 	return r
 }
 
+// SendStruct Позволяет быстро отправлять любые структуры маршаля их в JSON\XML
 func (r *Request) SendStruct(data interface{}) *Request {
 	r.cStruct = data
 
 	return r
 }
 
+// SendPlain Позволяет отправить переданный текст как есть
 func (r *Request) SendPlain(data string) *Request {
 	r.rawData = data
 	r.ctype = TypeText

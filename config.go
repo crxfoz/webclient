@@ -15,6 +15,7 @@ type Config struct {
 	FollowRedirect bool
 }
 
+// New Создает и возвращает *Webclient
 func (c Config) New() *Webclient {
 	options := cookiejar.Options{}
 	jar, _ := cookiejar.New(&options)
