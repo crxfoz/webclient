@@ -496,5 +496,40 @@ func TestRequest_SetHeaders(t *testing.T) {
 	}))
 
 	Config{}.New().Get(ts.URL).SetHeaders(m).SetHeader("Referer", "https://google.com").Do()
+}
 
+func TestUrlencode(t *testing.T) {
+	const case01_mget = "/get"
+	const case02_mpost = "/post"
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case case01_mget:
+			if r.URL.Query()["name[1]"][0] != "'va l ueЩ" {
+				t.Errorf("Expected: %s, got: %s", "'va l ueЩ", r.Form["name[1]"][0])
+			}
+
+			// todo: go1.8 url.PathEscape ?
+			// if r.URL.RawQuery != "name%5B1%5D=%27va%20l%20ue%D0%A9" {
+			// 	t.Errorf("Expected: %s, got: %s", "name%5B1%5D=%27va%20l%20ue%D0%A9", r.URL.RawQuery)
+			// }
+
+		case case02_mpost:
+			r.ParseForm()
+
+			if r.Form["name[1]"][0] != "'va l ueЩ" {
+				t.Errorf("Expected: %s, got: %s", "'va l ueЩ", r.Form["name[1]"][0])
+			}
+
+			if r.Form.Encode() != "name%5B1%5D=%27va+l+ue%D0%A9" {
+				t.Errorf("Expected: %s, got: %s", "name%5B1%5D=%27va+l+ue%D0%A9", r.Form.Encode())
+			}
+
+		default:
+			t.Errorf("Unexpected path: %s", r.URL.Path)
+		}
+	}))
+
+	Config{}.New().Get(ts.URL+case01_mget).QueryParam("name[1]", "'va l ueЩ").Do()
+	Config{}.New().Post(ts.URL+case02_mpost).SendParam("name[1]", "'va l ueЩ").Do()
 }
