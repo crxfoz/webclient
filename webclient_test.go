@@ -4,22 +4,22 @@ package webclient
 // todo: проверять на urlencode, пробелы, пустые параметры
 
 import (
-	"testing"
-	"net/http/httptest"
-	"net/http"
-	"time"
-	"net"
-	"strings"
-	"io/ioutil"
 	"encoding/json"
 	"encoding/xml"
+	"io/ioutil"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
 )
 
 func TestMapToUrlValues(t *testing.T) {
 	data := map[string][]string{
 		"foo": {"bar"},
-		"b": {"1","2"},
-		"4": {"6"},
+		"b":   {"1", "2"},
+		"4":   {"6"},
 	}
 
 	res := mapToUrlValues(data)
@@ -125,7 +125,7 @@ func TestMethods(t *testing.T) {
 		"PATCH",
 	}
 
-	for _, method := range methods{
+	for _, method := range methods {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method != method {
 				t.Errorf("Expected method %s, got: %s", method, r.Method)
@@ -133,7 +133,7 @@ func TestMethods(t *testing.T) {
 		}))
 
 		client := Config{}.New()
-		switch method{
+		switch method {
 		case "GET":
 			client.Get(ts.URL).Do()
 		case "POST":
@@ -188,15 +188,15 @@ func TestQueryParams(t *testing.T) {
 		}
 		params := r.URL.Query()
 		if params.Get("foo") != "bar" {
-			t.Errorf("Expected query param. Expected: %s, got: %s", "bar", params.Get("foo") )
+			t.Errorf("Expected query param. Expected: %s, got: %s", "bar", params.Get("foo"))
 		}
 
 		if params.Get("foz") != "boz" {
-			t.Errorf("Expected query param. Expected: %s, got: %s", "boz", params.Get("foz") )
+			t.Errorf("Expected query param. Expected: %s, got: %s", "boz", params.Get("foz"))
 		}
 
 		if params.Get("l[]") != "123" {
-			t.Errorf("Expected query param. Expected: %s, got: %s", "123", params.Get("l[]") )
+			t.Errorf("Expected query param. Expected: %s, got: %s", "123", params.Get("l[]"))
 		}
 
 	}))
@@ -204,7 +204,7 @@ func TestQueryParams(t *testing.T) {
 	defer ts.Close()
 
 	client := Config{}.New()
-	client.Get(ts.URL + "/path").Query("foo=bar&foz=boz").QueryParam("l[]", "123").Do()
+	client.Get(ts.URL+"/path").Query("foo=bar&foz=boz").QueryParam("l[]", "123").Do()
 }
 
 func TestPostParams(t *testing.T) {
@@ -217,15 +217,15 @@ func TestPostParams(t *testing.T) {
 
 		params := r.Form
 		if params.Get("foo") != "bar" {
-			t.Errorf("Expected query param. Expected: %s, got: %s", "bar", params.Get("foo") )
+			t.Errorf("Expected query param. Expected: %s, got: %s", "bar", params.Get("foo"))
 		}
 
 		if params.Get("foz") != "boz" {
-			t.Errorf("Expected query param. Expected: %s, got: %s", "boz", params.Get("foz") )
+			t.Errorf("Expected query param. Expected: %s, got: %s", "boz", params.Get("foz"))
 		}
 
 		if params.Get("var") != "val" {
-			t.Errorf("Expected query param. Expected: %s, got: %s", "val", params.Get("var") )
+			t.Errorf("Expected query param. Expected: %s, got: %s", "val", params.Get("var"))
 		}
 
 		encoded := r.Form.Encode()
@@ -238,7 +238,7 @@ func TestPostParams(t *testing.T) {
 	defer ts.Close()
 
 	client := Config{}.New()
-	client.Post(ts.URL + "/path2").Send("foo=bar&foz=boz").SendParam("var", "val").SendParam("foo", "bar").Do()
+	client.Post(ts.URL+"/path2").Send("foo=bar&foz=boz").SendParam("var", "val").SendParam("foo", "bar").Do()
 }
 
 func TestMultipartFile(t *testing.T) {
@@ -299,20 +299,19 @@ func TestMultipartFile(t *testing.T) {
 	}
 
 	Config{}.New().
-		Post(ts.URL + case01_default_file).
+		Post(ts.URL+case01_default_file).
 		QueryParam("q1", "a").
 		QueryParam("q2", "b").
 		SendParam("s1", "a").
 		SendParam("s2", "b").
 		SendFile(f).
 		Do()
-
 
 	f.Name = "newname.txt"
 	f.ContentType = "image/png"
 
 	Config{}.New().
-		Post(ts.URL + case02_custom_file).
+		Post(ts.URL+case02_custom_file).
 		QueryParam("q1", "a").
 		QueryParam("q2", "b").
 		SendParam("s1", "a").
@@ -321,7 +320,7 @@ func TestMultipartFile(t *testing.T) {
 		Do()
 
 	Config{}.New().
-		Post(ts.URL + case03_no_file).
+		Post(ts.URL+case03_no_file).
 		ContentType(TypeMultipart).
 		QueryParam("q1", "a").
 		QueryParam("q2", "b").
@@ -335,7 +334,6 @@ func TestCustomContentType(t *testing.T) {
 		if r.Header.Get("Content-Type") != string(TypeJSON) {
 			t.Errorf("Expect header content-type: %s, got: %s", TypeJSON, r.Header.Get("Content-Type"))
 		}
-
 
 		d, err := ioutil.ReadAll(r.Body)
 		if err != nil {
@@ -361,7 +359,7 @@ func TestRequest_SendJSON(t *testing.T) {
 		}
 
 		type Case01Struct struct {
-			Name string `json:"name"`
+			Name  string `json:"name"`
 			Films []struct {
 				ID   int    `json:"id"`
 				Name string `json:"name"`
@@ -387,10 +385,10 @@ func TestRequest_SendJSON(t *testing.T) {
 func TestRequest_SendXML(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		type Case01Struct struct {
-				Food []struct {
-					Name string `xml:"name"`
-					Calories string `xml:"calories"`
-				} `xml:"food"`
+			Food []struct {
+				Name     string `xml:"name"`
+				Calories string `xml:"calories"`
+			} `xml:"food"`
 		}
 
 		var ss Case01Struct
@@ -415,11 +413,11 @@ func TestRequest_SendXML(t *testing.T) {
 
 type Person struct {
 	Name string `json:"name" xml:"name"`
-	Pets []Pet `json:"pets" xml:"pets"`
+	Pets []Pet  `json:"pets" xml:"pets"`
 }
 
 type Pet struct {
-	ID int `json:"id" xml:"id"`
+	ID  int `json:"id" xml:"id"`
 	Age int `json:"age" xml:"age"`
 }
 
@@ -456,13 +454,13 @@ func TestRequest_SendStruct(t *testing.T) {
 	b := []Person{
 		{
 			Name: "foo",
-				Pets:[]Pet{
-					{1, 13},
-					{2, 14}},
+			Pets: []Pet{
+				{1, 13},
+				{2, 14}},
 		},
 		{
 			Name: "bar",
-			Pets:[]Pet{
+			Pets: []Pet{
 				{3, 6}},
 		},
 	}
@@ -470,4 +468,33 @@ func TestRequest_SendStruct(t *testing.T) {
 	Config{}.New().Post(ts.URL + case01_json).SendStruct(&b).ContentType(TypeJSON).Do()
 	Config{}.New().Post(ts.URL + case02_xml).SendStruct(&b).ContentType(TypeXML).Do()
 	Config{}.New().Post(ts.URL + case01_json).SendStruct(&b).Do()
+}
+
+func TestRequest_SetHeaders(t *testing.T) {
+	m := map[string]string{
+		"User-Agent":      "Mozilla/5.0",
+		"Accept":          "text/html",
+		"Accept-Language": "en-EN",
+	}
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("User-Agent") != "Mozilla/5.0" {
+			t.Errorf("Expected header User-Agent: %s, got: %s", "Mozilla/5.0", r.Header.Get("User-Agent"))
+		}
+
+		if r.Header.Get("Accept") != "text/html" {
+			t.Errorf("Expected header Accept: %s, got: %s", "text/html", r.Header.Get("Accept"))
+		}
+
+		if r.Header.Get("Accept-Language") != "en-EN" {
+			t.Errorf("Expected header Accept-Language: %s, got: %s", "en-EN", r.Header.Get("User-Agent"))
+		}
+
+		if r.Header.Get("Referer") != "https://google.com" {
+			t.Errorf("Expected header Referer: %s, got: %s", "https://google.com", r.Header.Get("Referer"))
+		}
+	}))
+
+	Config{}.New().Get(ts.URL).SetHeaders(m).SetHeader("Referer", "https://google.com").Do()
+
 }

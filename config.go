@@ -1,17 +1,17 @@
 package webclient
 
 import (
-	"net/http/cookiejar"
-	"net/http"
 	"crypto/tls"
-	"time"
 	"net"
+	"net/http"
+	"net/http/cookiejar"
+	"time"
 )
 
 // Config Базовая структура принимающая параметры для конфигируции *Webclient
 type Config struct {
-	Timeout time.Duration
-	UseKeepAlive bool
+	Timeout        time.Duration
+	UseKeepAlive   bool
 	FollowRedirect bool
 }
 
@@ -20,7 +20,7 @@ func (c Config) New() *Webclient {
 	jar, _ := cookiejar.New(&options)
 
 	newWebClient := &Webclient{
-		client:    &http.Client{Jar: jar},
+		client: &http.Client{Jar: jar},
 		transport: &http.Transport{
 			Proxy:              nil,
 			TLSClientConfig:    &tls.Config{InsecureSkipVerify: true},

@@ -21,17 +21,17 @@ import (
 type Request struct {
 	client *http.Client
 
-	url       	string
-	ctype     	WContentType
+	url         string
+	ctype       WContentType
 	customCType WContentType
-	method    	string
-	cStruct 	interface{}
-	rawData 	string
-	headers   	map[string]string
-	cookies   	map[string]string
-	queryData 	map[string][]string
-	formData  	map[string][]string
-	files 		[]File
+	method      string
+	cStruct     interface{}
+	rawData     string
+	headers     map[string]string
+	cookies     map[string]string
+	queryData   map[string][]string
+	formData    map[string][]string
+	files       []File
 }
 
 // NewRequest Создает новый Request
@@ -39,12 +39,12 @@ func NewRequest(client *http.Client, transport *http.Transport, targetURL string
 	client.Transport = transport
 
 	return &Request{
-		client: client,
-		url: targetURL,
-		method: method,
-		headers: make(map[string]string),
-		cookies: make(map[string]string),
-		files: make([]File, 0),
+		client:    client,
+		url:       targetURL,
+		method:    method,
+		headers:   make(map[string]string),
+		cookies:   make(map[string]string),
+		files:     make([]File, 0),
 		queryData: make(map[string][]string),
 		formData:  make(map[string][]string),
 	}
@@ -65,6 +65,15 @@ func (r *Request) ContentType(name WContentType) *Request {
 // SetHeader Устанавливает заголовок для запроса
 func (r *Request) SetHeader(header string, data string) *Request {
 	r.headers[header] = data
+	return r
+}
+
+// SetHeaders Устанавливает множество заголовков для запроса
+func (r *Request) SetHeaders(headers map[string]string) *Request {
+	for key, value := range headers {
+		r.headers[key] = value
+	}
+
 	return r
 }
 
@@ -167,7 +176,7 @@ func (r *Request) SendFile(file File) *Request {
 }
 
 // SendFiles Добавить множество файлов к запросу
-func(r *Request) SendFiles(files ...File) *Request {
+func (r *Request) SendFiles(files ...File) *Request {
 	for _, file := range files {
 		r.files = append(r.files, file)
 	}
@@ -176,7 +185,7 @@ func(r *Request) SendFiles(files ...File) *Request {
 }
 
 // SendJSON Отправляет data как application/json контент
-func(r *Request) SendJSON(data string) *Request {
+func (r *Request) SendJSON(data string) *Request {
 	r.ctype = TypeJSON
 	r.rawData = data
 
@@ -184,20 +193,20 @@ func(r *Request) SendJSON(data string) *Request {
 }
 
 // SendXML Отправляет data как application/xml контент
-func(r *Request) SendXML(data string) *Request {
+func (r *Request) SendXML(data string) *Request {
 	r.ctype = TypeXML
 	r.rawData = data
 
 	return r
 }
 
-func(r *Request) SendStruct(data interface{}) *Request {
+func (r *Request) SendStruct(data interface{}) *Request {
 	r.cStruct = data
 
 	return r
 }
 
-func(r *Request) SendPlain(data string) *Request {
+func (r *Request) SendPlain(data string) *Request {
 	r.rawData = data
 	r.ctype = TypeText
 
@@ -249,10 +258,10 @@ func (r *Request) newRequest() (*http.Request, error) {
 		r.ctype = WContentType(multipartWriter.FormDataContentType())
 
 	} else if len(r.formData) > 0 {
-			// Если есть formData
-			b := []byte(mapToUrlValues(r.formData).Encode())
-			data = bytes.NewReader(b)
-			r.ctype = TypeForm
+		// Если есть formData
+		b := []byte(mapToUrlValues(r.formData).Encode())
+		data = bytes.NewReader(b)
+		r.ctype = TypeForm
 
 	} else if len(r.rawData) > 0 {
 		// Если есть rawData (сырая строка с JSON, XML, PlainText)
