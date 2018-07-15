@@ -4,6 +4,7 @@ package webclient
 // todo: BasicAuth
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
@@ -311,4 +312,77 @@ func (r *Request) Do() (*http.Response, string, error) {
 	body, _ := ioutil.ReadAll(resp.Body)
 
 	return resp, string(body), nil
+}
+
+// DoStreamString Позволяет читать тело ответа потоково. Читает строчно,
+// дойдя до \n. Возвращает string.
+// todo: test
+func (r *Request) DoStreamString() (*http.Response, Streamer, error) {
+	req, err := r.newRequest()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resp, err := r.client.Do(req)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	streamer := &streamer{
+		C: make(chan interface{}),
+	}
+
+	go func() {
+		defer resp.Body.Close()
+
+		reader := bufio.NewReader(resp.Body)
+
+		for {
+			n, err := reader.ReadBytes('\n')
+			if err == io.EOF {
+				close(streamer.C)
+				break
+			}
+
+			streamer.C <- string(n)
+		}
+	}()
+
+	return resp, streamer, err
+}
+
+// DoStreamBytes Позволяет читать тело ответа потоково. Читает по байтово, склдывая
+// данные в буффер, размер буффера определяется аргументом bytes. Возвращает []byte
+// todo: test
+func (r *Request) DoStreamBytes(bytes uint) (*http.Response, Streamer, error) {
+	req, err := r.newRequest()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resp, err := r.client.Do(req)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	streamer := &streamer{
+		C: make(chan interface{}),
+	}
+
+	go func() {
+		defer resp.Body.Close()
+		p := make([]byte, bytes)
+
+		for {
+			n, err := resp.Body.Read(p)
+			if err != nil {
+				close(streamer.C)
+				break
+			}
+
+			streamer.C <- p[:n]
+		}
+	}()
+
+	return resp, streamer, err
 }
