@@ -1,7 +1,9 @@
 package webclient
 
 import (
+	"context"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 )
@@ -60,3 +62,10 @@ func (w *Webclient) Proxy(proxyURL string) *Webclient {
 	return w
 }
 
+func (w *Webclient) Dialer(dialer func(string, string) (net.Conn, error)) *Webclient {
+	w.transport.DialContext = func(ctx context.Context, network, addr string) (conn net.Conn, e error) {
+		return dialer(network, addr)
+	}
+
+	return w
+}

@@ -3,6 +3,8 @@ package webclient
 import (
 	"crypto/tls"
 	"net"
+
+	//"net"
 	"net/http"
 	"net/http/cookiejar"
 	"time"
@@ -27,15 +29,16 @@ func (c Config) New() *Webclient {
 			TLSClientConfig:    &tls.Config{InsecureSkipVerify: true},
 			DisableCompression: false,
 			DisableKeepAlives:  !c.UseKeepAlive,
+
 		},
 	}
 
 	if c.Timeout > 0 {
-		newWebClient.client.Timeout = c.Timeout * time.Second
-		newWebClient.transport.TLSHandshakeTimeout = c.Timeout * time.Second
-		newWebClient.transport.ResponseHeaderTimeout = c.Timeout * time.Second
+		newWebClient.client.Timeout = c.Timeout
+		newWebClient.transport.TLSHandshakeTimeout = c.Timeout
+		newWebClient.transport.ResponseHeaderTimeout = c.Timeout
 		newWebClient.transport.DialContext = (&net.Dialer{
-			Timeout:   c.Timeout * time.Second,
+			Timeout:   c.Timeout,
 			KeepAlive: 120 * time.Second,
 		}).DialContext
 	}
@@ -49,5 +52,4 @@ func (c Config) New() *Webclient {
 	}
 
 	return newWebClient
-
 }
